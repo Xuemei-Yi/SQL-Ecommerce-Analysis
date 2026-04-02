@@ -30,3 +30,56 @@ WHERE oi.order_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
 GROUP BY u.user_id, u.user_name
 ORDER BY total_spent DESC
 LIMIT 10;
+
+-- 4. 各品类热销商品排名（带名次）
+SELECT 
+    p.category,
+    p.product_name,
+    SUM(oi.order_num) AS total_sold,
+    -- 窗口函数：按分类分组，内部按销量排序并生成排名
+    RANK() OVER (PARTITION BY p.category ORDER BY SUM(oi.order_num) DESC) AS rank_in_category
+FROM product p
+JOIN order_item oi ON p.product_id = oi.product_id
+GROUP BY p.category, p.product_name
+ORDER BY p.category, total_sold DESC;
+
+-- 5. 流失风险用户分析（沉睡用户）
+SELECT 
+    u.user_id,
+    u.user_name,
+    MAX(oi.order_time) AS last_order_time -- 最近一次下单时间
+FROM user_info u
+JOIN order_item oi ON u.user_id = oi.user_id
+WHERE oi.order_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+GROUP BY u.user_id, u.user_name
+-- 筛选条件：最近30天有消费，但最近一次下单距离今天超过7天（大概率沉睡）
+HAVING MAX(oi.order_time) <= DATE_SUB(CURDATE(), INTERVAL 7 DAY);
+
+-- 6. 用户客单价与消费水平分层
+SELECT 
+    u.user_id,
+    u.user_name,
+    COUNT(oi.order_id) AS order_count, -- 订单总数
+    SUM(p.price * oi.order_num) AS total_spent, -- 总消费
+    -- 计算平均客单价（总金额/订单数）
+    ROUND(SUM(p.price * oi.order_num) / COUNT(oi.order_id), 2) AS avg_order_value
+FROM user_info u
+JOIN order_item oi ON u.user_id = oi.user_id
+JOIN product p ON oi.product_id = p.product_id
+WHERE oi.order_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+GROUP BY u.user_id, u.user_name
+-- 按消费水平排序，方便做用户分层
+ORDER BY avg_order_value DESC;
+
+-- 7. 无下单用户/异常订单统计（左连接展示）
+SELECT 
+    u.user_id,
+    u.user_name,
+    -- 统计订单数，如果为空则显示0
+    COUNT(oi.order_id) AS total_orders
+FROM user_info u
+-- 左连接：保留所有用户，哪怕没有订单
+LEFT JOIN order_item oi ON u.user_id = oi.user_id
+GROUP BY u.user_id, u.user_name
+-- 筛选出从未下单的用户
+HAVING COUNT(oi.order_id) = 0;

@@ -55,7 +55,7 @@ GROUP BY u.user_id, u.user_name
 -- 筛选条件：最近30天有消费，但最近一次下单距离今天超过7天（大概率沉睡）
 HAVING MAX(oi.order_time) <= DATE_SUB(CURDATE(), INTERVAL 7 DAY);
 
--- 6. 用户客单价与消费水平分层
+-- 6. 近30天内用户客单价与消费水平分层
 SELECT 
     u.user_id,
     u.user_name,

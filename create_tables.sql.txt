@@ -1,0 +1,25 @@
+-- 用户表
+CREATE TABLE user_info (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_name VARCHAR(50),
+    gender CHAR(2),
+    age INT,
+    register_time DATETIME
+);
+
+-- 商品表
+CREATE TABLE product (
+    product_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_name VARCHAR(100),
+    category VARCHAR(50),
+    price DECIMAL(10,2)
+);
+
+-- 订单表
+CREATE TABLE order_item (
+    order_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT,
+    product_id INT,
+    order_num INT,
+    order_time DATETIME
+);
